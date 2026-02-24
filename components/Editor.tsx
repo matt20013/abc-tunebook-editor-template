@@ -34,8 +34,25 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
         e.returnValue = "";
       }
     };
+
+    const handlePopState = () => {
+      if (isDirty) {
+        if (!window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+          // If the user cancels, we want to stay on the current page.
+          // Since the URL has already changed, we push the current page back onto the history.
+          window.history.pushState(null, "", window.location.href);
+          // Note: This isn't perfect in Next.js but it's a common best-effort approach.
+        }
+      }
+    };
+
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("popstate", handlePopState);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handlePopState);
+    };
   }, [isDirty]);
 
   useEffect(() => {
@@ -112,14 +129,26 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
             <div className="text-sm text-gray-500 mt-1">
               {repoName && (
                 <>
-                  <Link href={`/?repo=${repoName}`} className="hover:underline text-blue-600">
+                  <Link
+                    href={`/?repo=${repoName}`}
+                    className="hover:underline text-blue-600"
+                    onClick={(e) => {
+                      if (isDirty && !window.confirm("You have unsaved changes. Are you sure you want to leave?")) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
                     {repoName}
                   </Link>
                   <span className="mx-1">/</span>
                 </>
               )}
               <span>{filePath || "New File"}</span>
-              {isDirty && <span className="ml-2 text-amber-600 font-semibold">(Unsaved)</span>}
+              {isDirty && (
+                <span className="ml-2 px-2 py-0.5 bg-amber-100 text-amber-800 text-xs font-bold rounded-full border border-amber-200">
+                  Unsaved Changes
+                </span>
+              )}
             </div>
           </div>
           <button
