@@ -46,9 +46,10 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
         setSelectedTuneIndex(0);
       }
     }
-  }, [abc]);
+  }, [abc, selectedTuneIndex]);
 
   useEffect(() => {
+    let isCancelled = false;
     if (typeof window !== "undefined") {
       // Render visual
       const visualObj = abcjs.renderAbc("paper", abc, {
@@ -57,8 +58,8 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
       });
 
       // Render audio
-      if (visualObj && visualObj[0] && abcjs.synth.supportsAudio()) {
-        const currentTune = visualObj[0];
+      if (visualObj && visualObj[selectedTuneIndex] && abcjs.synth.supportsAudio()) {
+        const currentTune = visualObj[selectedTuneIndex];
         if (!synthControllerRef.current) {
           synthControllerRef.current = new abcjs.synth.SynthController();
           synthControllerRef.current.load("#audio", null, {
@@ -72,6 +73,7 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
 
         const createSynth = new abcjs.synth.CreateSynth();
         createSynth.init({ visualObj: currentTune }).then(() => {
+          if (isCancelled) return;
           if (synthControllerRef.current) {
             synthControllerRef.current.setTune(currentTune, false, {})
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,10 +82,18 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .catch((error: any) => {
-          console.warn("Audio problem:", error);
+          if (!isCancelled) {
+            console.warn("Audio problem:", error);
+          }
         });
       }
     }
+    return () => {
+      isCancelled = true;
+      if (synthControllerRef.current) {
+        synthControllerRef.current.pause();
+      }
+    };
   }, [abc, selectedTuneIndex]);
 
   const handleSave = async () => {
