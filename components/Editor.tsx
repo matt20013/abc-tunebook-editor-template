@@ -130,6 +130,23 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
     }
   };
 
+  const handleCursorActivity = (e: React.MouseEvent<HTMLTextAreaElement> | React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const cursorPosition = e.currentTarget.selectionStart;
+    const tuneStarts = [...abc.matchAll(/^X:/gm)].map((m) => m.index);
+    let tuneIndex = -1;
+    for (let i = 0; i < tuneStarts.length; i++) {
+      if (cursorPosition >= (tuneStarts[i] ?? 0)) {
+        tuneIndex = i;
+      } else {
+        break;
+      }
+    }
+
+    if (tuneIndex !== -1 && tuneIndex < parsedTunes.length && tuneIndex !== selectedTuneIndex) {
+      setSelectedTuneIndex(tuneIndex);
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col md:flex-row">
       <div className="w-full md:w-1/2 p-4 flex flex-col border-r border-gray-300">
@@ -180,6 +197,8 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
             setAbc(e.target.value);
             setIsDirty(true);
           }}
+          onClick={handleCursorActivity}
+          onKeyUp={handleCursorActivity}
           placeholder="Enter ABC notation here..."
         />
         <div className="mt-4 flex justify-end">
