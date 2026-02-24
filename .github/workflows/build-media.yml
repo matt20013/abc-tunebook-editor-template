@@ -1,0 +1,28 @@
+name: Build Media
+
+on:
+  push:
+    paths:
+      - 'abcs/**/*.abc'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build_and_commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile ABC files
+        uses: matt20013/abc_docker@v1
+        with:
+          auto_commit: false
+
+      - name: Commit and Push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update compiled media [skip ci]"
+          file_pattern: 'pdfs/ mp3s/'
