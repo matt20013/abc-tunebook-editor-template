@@ -5,8 +5,9 @@ import FileList from "@/components/FileList";
 import RepoList, { Repo } from "@/components/RepoList";
 import { getRepertoireContent, getRepoFiles, getUserRepos } from "@/lib/github";
 import Link from "next/link";
+import { FileItem } from "@/types/github";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ repo?: string; file?: string }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ repo?: string; file?: string; path?: string }> }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.accessToken) {
@@ -33,6 +34,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
   const params = await searchParams;
   const repoName = params.repo;
   const filePath = params.file;
+  const dirPath = params.path;
 
   if (repoName && filePath) {
     // Editor View
@@ -53,11 +55,29 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
     );
   } else if (repoName) {
     // File List View
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const files = (await getRepoFiles(session.accessToken, repoName)) as any[];
+    let currentPath = dirPath;
+    let files: FileItem[] | null = null;
+
+    if (currentPath === undefined) {
+        // Default logic: try 'abcs', fallback to root
+        currentPath = "abcs";
+        files = await getRepoFiles(session.accessToken, repoName, currentPath);
+        if (!files) {
+            currentPath = "";
+            files = await getRepoFiles(session.accessToken, repoName, currentPath);
+        }
+    } else {
+        files = await getRepoFiles(session.accessToken, repoName, currentPath);
+        if (!files) {
+            // If the specified path fails, fallback to root
+            currentPath = "";
+            files = await getRepoFiles(session.accessToken, repoName, currentPath);
+        }
+    }
+
     return (
       <main className="min-h-screen">
-        <FileList files={files} repoName={repoName} />
+        <FileList files={files || []} repoName={repoName} currentPath={currentPath} />
       </main>
     );
   } else {

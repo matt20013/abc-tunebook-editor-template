@@ -3,26 +3,22 @@
 import Link from "next/link";
 import React from "react";
 import { signOut } from "next-auth/react";
-
-interface FileItem {
-  name: string;
-  path: string;
-  type: string; // 'file' or 'dir'
-  size: number;
-  download_url: string;
-}
+import { FileItem } from "@/types/github";
 
 interface FileListProps {
   files: FileItem[];
   repoName: string;
+  currentPath: string;
 }
 
-export default function FileList({ files, repoName }: FileListProps) {
+export default function FileList({ files, repoName, currentPath }: FileListProps) {
   // Sort: directories first, then files
   const sortedFiles = [...files].sort((a, b) => {
     if (a.type === b.type) return a.name.localeCompare(b.name);
     return a.type === "dir" ? -1 : 1;
   });
+
+  const parentPath = currentPath.split("/").slice(0, -1).join("/");
 
   return (
     <div className="flex min-h-screen flex-col items-center bg-gray-50 p-8">
@@ -38,6 +34,12 @@ export default function FileList({ files, repoName }: FileListProps) {
               </Link>
               <span>/</span>
               <span>{repoName}</span>
+              {currentPath && (
+                  <>
+                      <span>/</span>
+                      <span>{currentPath}</span>
+                  </>
+              )}
             </div>
           </div>
           <button
@@ -49,6 +51,19 @@ export default function FileList({ files, repoName }: FileListProps) {
         </div>
 
         <ul className="divide-y divide-gray-200">
+          {currentPath && (
+              <li className="hover:bg-gray-50 transition-colors">
+                  <Link
+                      href={`/?repo=${repoName}&path=${parentPath}`}
+                      className="block p-4 pl-6"
+                  >
+                      <div className="flex items-center">
+                          <span className="mr-2 text-gray-500">📁</span>
+                          <span className="text-gray-900 font-medium">..</span>
+                      </div>
+                  </Link>
+              </li>
+          )}
           {sortedFiles.length === 0 ? (
             <li className="p-6 text-center text-gray-500">
               No files found.
@@ -57,9 +72,15 @@ export default function FileList({ files, repoName }: FileListProps) {
             sortedFiles.map((file) => (
               <li key={file.path} className="hover:bg-gray-50 transition-colors">
                 {file.type === "dir" ? (
-                  <div className="block p-4 pl-6 text-gray-400">
-                    <span className="font-bold mr-2">📁</span> {file.name} (Directory support pending)
-                  </div>
+                  <Link
+                      href={`/?repo=${repoName}&path=${file.path}`}
+                      className="block p-4 pl-6"
+                  >
+                      <div className="flex items-center">
+                          <span className="mr-2 text-blue-500">📁</span>
+                          <span className="text-gray-900 font-medium">{file.name}</span>
+                      </div>
+                  </Link>
                 ) : (
                   <Link
                     href={`/?repo=${repoName}&file=${encodeURIComponent(file.path)}`}
