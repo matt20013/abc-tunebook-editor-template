@@ -1,4 +1,5 @@
 import { Octokit } from "octokit";
+import { FileItem } from "@/types/github";
 
 function encodeBase64(str: string) {
     if (typeof window === 'undefined') {
@@ -30,7 +31,7 @@ export async function getUserRepos(accessToken: string) {
   }
 }
 
-export async function getRepoFiles(accessToken: string, repoName: string, path: string = "") {
+export async function getRepoFiles(accessToken: string, repoName: string, path: string = ""): Promise<FileItem[] | null> {
   const octokit = new Octokit({ auth: accessToken });
   const { data: user } = await octokit.rest.users.getAuthenticated();
   let owner = user.login;
@@ -48,13 +49,15 @@ export async function getRepoFiles(accessToken: string, repoName: string, path: 
     });
 
     if (Array.isArray(response.data)) {
-        return response.data.map((item) => ({
-            name: item.name,
-            path: item.path,
-            type: item.type, // 'file' or 'dir'
-            size: item.size,
-            download_url: item.download_url,
-        }));
+        return response.data
+            .filter((item) => item.type === "dir" || item.name.endsWith(".abc"))
+            .map((item) => ({
+                name: item.name,
+                path: item.path,
+                type: item.type, // 'file' or 'dir'
+                size: item.size,
+                download_url: item.download_url,
+            })) as FileItem[];
     } else {
         // If it's a single file (not a directory), return it as an array
         return [{
@@ -63,11 +66,11 @@ export async function getRepoFiles(accessToken: string, repoName: string, path: 
             type: response.data.type,
             size: response.data.size,
             download_url: response.data.download_url,
-        }];
+        }] as FileItem[];
     }
   } catch (error) {
     console.error("Error fetching repo content:", error);
-    return [];
+    return null;
   }
 }
 
