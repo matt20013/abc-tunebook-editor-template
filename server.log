@@ -2,12 +2,14 @@
 > abc-tunebook-editor-template@0.1.0 dev
 > next dev
 
-⚠ Port 3000 is in use by an unknown process, using available port 3001 instead.
 ▲ Next.js 16.1.6 (Turbopack)
-- Local:         http://localhost:3001
-- Network:       http://192.168.0.2:3001
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
 
 ✓ Starting...
-⨯ Unable to acquire lock at /app/.next/dev/lock, is another instance of next dev running?
-  Suggestion: If you intended to restart next dev, terminate the other process, and then try again.
-[?25h
+✓ Ready in 1059ms
+○ Compiling /test-editor ...
+ GET /test-editor 200 in 5.5s (compile: 4.9s, render: 600ms)
+ GET /test-editor 200 in 99ms (compile: 7ms, render: 92ms)
+ GET /test-editor 200 in 269ms (compile: 89ms, render: 180ms)
+ GET /test-editor 200 in 228ms (compile: 69ms, render: 159ms)

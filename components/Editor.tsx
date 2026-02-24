@@ -21,6 +21,9 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
   const [saving, setSaving] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [parsedTunes, setParsedTunes] = useState<any[]>([]);
+  const [selectedTuneIndex, setSelectedTuneIndex] = useState(0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const synthControllerRef = useRef<any>(null);
 
   // Warn on unsaved changes
@@ -37,11 +40,25 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const tunes = abcjs.parseOnly(abc);
+      setParsedTunes(tunes);
+      if (selectedTuneIndex >= tunes.length) {
+        setSelectedTuneIndex(0);
+      }
+    }
+  }, [abc]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
       // Render visual
-      const visualObj = abcjs.renderAbc("paper", abc, { responsive: "resize" });
+      const visualObj = abcjs.renderAbc("paper", abc, {
+        responsive: "resize",
+        startingTune: selectedTuneIndex,
+      });
 
       // Render audio
-      if (abcjs.synth.supportsAudio()) {
+      if (visualObj && visualObj[0] && abcjs.synth.supportsAudio()) {
+        const currentTune = visualObj[0];
         if (!synthControllerRef.current) {
           synthControllerRef.current = new abcjs.synth.SynthController();
           synthControllerRef.current.load("#audio", null, {
@@ -54,9 +71,9 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
         }
 
         const createSynth = new abcjs.synth.CreateSynth();
-        createSynth.init({ visualObj: visualObj[0] }).then(() => {
+        createSynth.init({ visualObj: currentTune }).then(() => {
           if (synthControllerRef.current) {
-            synthControllerRef.current.setTune(visualObj[0], false, {})
+            synthControllerRef.current.setTune(currentTune, false, {})
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               .catch((error: any) => console.warn("Audio problem:", error));
           }
@@ -67,7 +84,7 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
         });
       }
     }
-  }, [abc]);
+  }, [abc, selectedTuneIndex]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -142,6 +159,25 @@ export default function Editor({ initialContent, initialSha, accessToken, repoNa
       </div>
       <div className="w-full md:w-1/2 p-4 flex flex-col bg-gray-50 overflow-y-auto">
         <h2 className="text-xl font-bold mb-4">Preview</h2>
+        {parsedTunes.length > 1 && (
+          <div className="mb-4">
+            <label htmlFor="tune-select" className="block text-sm font-medium text-gray-700 mb-1">
+              Select Tune
+            </label>
+            <select
+              id="tune-select"
+              value={selectedTuneIndex}
+              onChange={(e) => setSelectedTuneIndex(Number(e.target.value))}
+              className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-white border"
+            >
+              {parsedTunes.map((tune, index) => (
+                <option key={index} value={index}>
+                  {tune.metaText?.title || `Tune ${index + 1}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div id="audio" className="mb-4"></div>
         <div id="paper" className="flex-1 bg-white border border-gray-200 p-4 rounded shadow-sm"></div>
       </div>
