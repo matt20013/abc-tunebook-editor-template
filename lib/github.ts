@@ -30,7 +30,7 @@ export async function getUserRepos(accessToken: string) {
   }
 }
 
-export async function getRepertoireContent(accessToken: string, repoName?: string) {
+export async function getRepoFiles(accessToken: string, repoName: string, path: string = "") {
   const octokit = new Octokit({ auth: accessToken });
   const { data: user } = await octokit.rest.users.getAuthenticated();
   let owner = user.login;
@@ -44,7 +44,50 @@ export async function getRepertoireContent(accessToken: string, repoName?: strin
     const response = await octokit.rest.repos.getContent({
       owner,
       repo,
-      path: "abcs/repertoire.abc",
+      path: path,
+    });
+
+    if (Array.isArray(response.data)) {
+        return response.data.map((item) => ({
+            name: item.name,
+            path: item.path,
+            type: item.type, // 'file' or 'dir'
+            size: item.size,
+            download_url: item.download_url,
+        }));
+    } else {
+        // If it's a single file (not a directory), return it as an array
+        return [{
+            name: response.data.name,
+            path: response.data.path,
+            type: response.data.type,
+            size: response.data.size,
+            download_url: response.data.download_url,
+        }];
+    }
+  } catch (error) {
+    console.error("Error fetching repo content:", error);
+    return [];
+  }
+}
+
+export async function getRepertoireContent(accessToken: string, repoName?: string, filePath?: string) {
+  const octokit = new Octokit({ auth: accessToken });
+  const { data: user } = await octokit.rest.users.getAuthenticated();
+  let owner = user.login;
+  let repo = repoName || process.env.NEXT_PUBLIC_REPO_NAME || "abc-tunebook-editor-template";
+
+  if (repoName && repoName.includes("/")) {
+    [owner, repo] = repoName.split("/");
+  }
+
+  const path = filePath || "abcs/repertoire.abc";
+
+  try {
+    const response = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path: path,
     });
 
     if (Array.isArray(response.data)) {
@@ -63,7 +106,7 @@ export async function getRepertoireContent(accessToken: string, repoName?: strin
   }
 }
 
-export async function saveRepertoireContent(accessToken: string, content: string, sha: string, repoName?: string) {
+export async function saveRepertoireContent(accessToken: string, content: string, sha: string, repoName?: string, filePath?: string) {
   const octokit = new Octokit({ auth: accessToken });
   const { data: user } = await octokit.rest.users.getAuthenticated();
   let owner = user.login;
@@ -73,12 +116,14 @@ export async function saveRepertoireContent(accessToken: string, content: string
     [owner, repo] = repoName.split("/");
   }
 
+  const path = filePath || "abcs/repertoire.abc";
+
   try {
     const response = await octokit.rest.repos.createOrUpdateFileContents({
       owner,
       repo,
-      path: "abcs/repertoire.abc",
-      message: "Update repertoire.abc via web editor",
+      path: path,
+      message: `Update ${path} via web editor`,
       content: encodeBase64(content),
       sha,
     });

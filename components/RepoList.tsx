@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import React from "react";
+import { signOut } from "next-auth/react";
 
 // Define a simplified interface for what we expect from the GitHub API
 export interface Repo {
@@ -21,11 +22,19 @@ export default function RepoList({ repos }: RepoListProps) {
   return (
     <div className="flex min-h-screen flex-col items-center bg-gray-50 p-8">
       <div className="w-full max-w-4xl bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-900">Select a Repository</h1>
-          <p className="mt-2 text-gray-600">
-            Choose a repository to edit your tunebook.
-          </p>
+        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Select a Repository</h1>
+            <p className="mt-2 text-gray-600">
+              Choose a repository to edit your tunebook.
+            </p>
+          </div>
+          <button
+            onClick={() => signOut()}
+            className="px-4 py-2 text-sm text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors"
+          >
+            Sign out
+          </button>
         </div>
         <ul className="divide-y divide-gray-200">
           {repos.length === 0 ? (

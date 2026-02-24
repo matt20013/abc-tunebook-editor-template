@@ -1,11 +1,12 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Editor from "@/components/Editor";
+import FileList from "@/components/FileList";
 import RepoList, { Repo } from "@/components/RepoList";
-import { getRepertoireContent, getUserRepos } from "@/lib/github";
+import { getRepertoireContent, getRepoFiles, getUserRepos } from "@/lib/github";
 import Link from "next/link";
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ repo?: string }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<{ repo?: string; file?: string }> }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.accessToken) {
@@ -31,9 +32,11 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
 
   const params = await searchParams;
   const repoName = params.repo;
+  const filePath = params.file;
 
-  if (repoName) {
-    const data = await getRepertoireContent(session.accessToken, repoName);
+  if (repoName && filePath) {
+    // Editor View
+    const data = await getRepertoireContent(session.accessToken, repoName, filePath);
     const initialContent = data?.content ?? "";
     const initialSha = data?.sha ?? "";
 
@@ -44,10 +47,21 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ r
           initialSha={initialSha}
           accessToken={session.accessToken}
           repoName={repoName}
+          filePath={filePath}
         />
       </main>
     );
+  } else if (repoName) {
+    // File List View
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const files = (await getRepoFiles(session.accessToken, repoName)) as any[];
+    return (
+      <main className="min-h-screen">
+        <FileList files={files} repoName={repoName} />
+      </main>
+    );
   } else {
+    // Repo List View
     // Cast to Repo[] because Octokit returns a more complex type
     const repos = (await getUserRepos(session.accessToken)) as unknown as Repo[];
     return (
