@@ -1,10 +1,11 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Editor from "@/components/Editor";
-import { getRepertoireContent } from "@/lib/github";
+import RepoList, { Repo } from "@/components/RepoList";
+import { getRepertoireContent, getUserRepos } from "@/lib/github";
 import Link from "next/link";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ repo?: string }> }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.accessToken) {
@@ -28,17 +29,31 @@ export default async function Home() {
     );
   }
 
-  const data = await getRepertoireContent(session.accessToken);
-  const initialContent = data?.content ?? "";
-  const initialSha = data?.sha ?? "";
+  const params = await searchParams;
+  const repoName = params.repo;
 
-  return (
-    <main className="min-h-screen">
-      <Editor
-        initialContent={initialContent}
-        initialSha={initialSha}
-        accessToken={session.accessToken}
-      />
-    </main>
-  );
+  if (repoName) {
+    const data = await getRepertoireContent(session.accessToken, repoName);
+    const initialContent = data?.content ?? "";
+    const initialSha = data?.sha ?? "";
+
+    return (
+      <main className="min-h-screen">
+        <Editor
+          initialContent={initialContent}
+          initialSha={initialSha}
+          accessToken={session.accessToken}
+          repoName={repoName}
+        />
+      </main>
+    );
+  } else {
+    // Cast to Repo[] because Octokit returns a more complex type
+    const repos = (await getUserRepos(session.accessToken)) as unknown as Repo[];
+    return (
+      <main className="min-h-screen">
+        <RepoList repos={repos} />
+      </main>
+    );
+  }
 }

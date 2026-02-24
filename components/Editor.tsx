@@ -4,14 +4,16 @@ import React, { useState, useEffect, useRef } from "react";
 import abcjs from "abcjs";
 import { saveRepertoireContent } from "@/lib/github";
 import "abcjs/abcjs-audio.css";
+import Link from "next/link";
 
 interface EditorProps {
   initialContent: string;
   initialSha: string;
   accessToken: string;
+  repoName?: string;
 }
 
-export default function Editor({ initialContent, initialSha, accessToken }: EditorProps) {
+export default function Editor({ initialContent, initialSha, accessToken, repoName }: EditorProps) {
   const [abc, setAbc] = useState(initialContent);
   const [sha, setSha] = useState(initialSha);
   const [saving, setSaving] = useState(false);
@@ -55,7 +57,7 @@ export default function Editor({ initialContent, initialSha, accessToken }: Edit
   const handleSave = async () => {
     setSaving(true);
     try {
-      const newSha = await saveRepertoireContent(accessToken, abc, sha);
+      const newSha = await saveRepertoireContent(accessToken, abc, sha, repoName);
       if (newSha) {
         setSha(newSha);
         alert("Saved successfully!");
@@ -71,7 +73,15 @@ export default function Editor({ initialContent, initialSha, accessToken }: Edit
   return (
     <div className="flex h-screen flex-col md:flex-row">
       <div className="w-full md:w-1/2 p-4 flex flex-col border-r border-gray-300">
-        <h2 className="text-xl font-bold mb-4">ABC Editor</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">ABC Editor</h2>
+          <div className="text-sm">
+            <span className="text-gray-500 mr-2">{repoName || "Default Repo"}</span>
+            <Link href="/" className="text-blue-600 hover:underline">
+              Switch Repo
+            </Link>
+          </div>
+        </div>
         <textarea
           className="flex-1 w-full p-2 border border-gray-300 rounded resize-none font-mono text-sm"
           value={abc}
