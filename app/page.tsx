@@ -1,10 +1,12 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import Editor from "@/components/Editor";
-import { getRepertoireContent } from "@/lib/github";
+import FileList from "@/components/FileList";
+import RepoList, { Repo } from "@/components/RepoList";
+import { getRepertoireContent, getRepoFiles, getUserRepos } from "@/lib/github";
 import Link from "next/link";
 
-export default async function Home() {
+export default async function Home({ searchParams }: { searchParams: Promise<{ repo?: string; file?: string }> }) {
   const session = await getServerSession(authOptions);
 
   if (!session?.accessToken) {
@@ -28,17 +30,44 @@ export default async function Home() {
     );
   }
 
-  const data = await getRepertoireContent(session.accessToken);
-  const initialContent = data?.content ?? "";
-  const initialSha = data?.sha ?? "";
+  const params = await searchParams;
+  const repoName = params.repo;
+  const filePath = params.file;
 
-  return (
-    <main className="min-h-screen">
-      <Editor
-        initialContent={initialContent}
-        initialSha={initialSha}
-        accessToken={session.accessToken}
-      />
-    </main>
-  );
+  if (repoName && filePath) {
+    // Editor View
+    const data = await getRepertoireContent(session.accessToken, repoName, filePath);
+    const initialContent = data?.content ?? "";
+    const initialSha = data?.sha ?? "";
+
+    return (
+      <main className="min-h-screen">
+        <Editor
+          initialContent={initialContent}
+          initialSha={initialSha}
+          accessToken={session.accessToken}
+          repoName={repoName}
+          filePath={filePath}
+        />
+      </main>
+    );
+  } else if (repoName) {
+    // File List View
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const files = (await getRepoFiles(session.accessToken, repoName)) as any[];
+    return (
+      <main className="min-h-screen">
+        <FileList files={files} repoName={repoName} />
+      </main>
+    );
+  } else {
+    // Repo List View
+    // Cast to Repo[] because Octokit returns a more complex type
+    const repos = (await getUserRepos(session.accessToken)) as unknown as Repo[];
+    return (
+      <main className="min-h-screen">
+        <RepoList repos={repos} />
+      </main>
+    );
+  }
 }
