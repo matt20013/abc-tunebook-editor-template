@@ -17,6 +17,18 @@ function decodeBase64(str: string) {
     }
 }
 
+async function resolveOwnerAndRepo(octokit: Octokit, repoName?: string) {
+  const fullRepoPath = repoName || process.env.NEXT_PUBLIC_REPO_NAME || "abc-tunebook-editor-template";
+
+  if (fullRepoPath.includes("/")) {
+    const [owner, ...repoParts] = fullRepoPath.split("/");
+    return { owner, repo: repoParts.join("/") };
+  }
+
+  const { data: user } = await octokit.rest.users.getAuthenticated();
+  return { owner: user.login, repo: fullRepoPath };
+}
+
 export async function getUserRepos(accessToken: string) {
   const octokit = new Octokit({ auth: accessToken });
   try {
@@ -33,15 +45,9 @@ export async function getUserRepos(accessToken: string) {
 
 export async function getRepoFiles(accessToken: string, repoName: string, path: string = ""): Promise<FileItem[] | null> {
   const octokit = new Octokit({ auth: accessToken });
-  const { data: user } = await octokit.rest.users.getAuthenticated();
-  let owner = user.login;
-  let repo = repoName || process.env.NEXT_PUBLIC_REPO_NAME || "abc-tunebook-editor-template";
-
-  if (repoName && repoName.includes("/")) {
-    [owner, repo] = repoName.split("/");
-  }
 
   try {
+    const { owner, repo } = await resolveOwnerAndRepo(octokit, repoName);
     const response = await octokit.rest.repos.getContent({
       owner,
       repo,
@@ -76,17 +82,10 @@ export async function getRepoFiles(accessToken: string, repoName: string, path: 
 
 export async function getRepertoireContent(accessToken: string, repoName?: string, filePath?: string) {
   const octokit = new Octokit({ auth: accessToken });
-  const { data: user } = await octokit.rest.users.getAuthenticated();
-  let owner = user.login;
-  let repo = repoName || process.env.NEXT_PUBLIC_REPO_NAME || "abc-tunebook-editor-template";
-
-  if (repoName && repoName.includes("/")) {
-    [owner, repo] = repoName.split("/");
-  }
-
   const path = filePath || "abcs/repertoire.abc";
 
   try {
+    const { owner, repo } = await resolveOwnerAndRepo(octokit, repoName);
     const response = await octokit.rest.repos.getContent({
       owner,
       repo,
@@ -111,17 +110,10 @@ export async function getRepertoireContent(accessToken: string, repoName?: strin
 
 export async function saveRepertoireContent(accessToken: string, content: string, sha: string, repoName?: string, filePath?: string) {
   const octokit = new Octokit({ auth: accessToken });
-  const { data: user } = await octokit.rest.users.getAuthenticated();
-  let owner = user.login;
-  let repo = repoName || process.env.NEXT_PUBLIC_REPO_NAME || "abc-tunebook-editor-template";
-
-  if (repoName && repoName.includes("/")) {
-    [owner, repo] = repoName.split("/");
-  }
-
   const path = filePath || "abcs/repertoire.abc";
 
   try {
+    const { owner, repo } = await resolveOwnerAndRepo(octokit, repoName);
     const response = await octokit.rest.repos.createOrUpdateFileContents({
       owner,
       repo,
